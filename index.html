@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory & Delivery Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .delivered {
+            background-color: #10B981;
+        }
+        .pending {
+            background-color: #F59E0B;
+        }
+        .returned {
+            background-color: #EF4444;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">Inventory & Delivery Tracking</h1>
+        
+        <div class="flex border-b border-gray-200 mb-6">
+            <button class="tab-btn py-2 px-4 font-medium text-gray-700 border-b-2 border-blue-500" data-tab="dispatch">Dispatch Sheet</button>
+            <button class="tab-btn py-2 px-4 font-medium text-gray-500" data-tab="inventory">Inventory Dashboard</button>
+        </div>
+        
+        <!-- Dispatch Sheet (Page 1) -->
+        <div id="dispatch" class="tab-content active">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Add New Dispatch</h2>
+                <form id="dispatchForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label for="customerName" class="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                        <input type="text" id="customerName" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="productModel" class="block text-sm font-medium text-gray-700 mb-1">Product Model</label>
+                        <select id="productModel" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="Model A">Model A</option>
+                            <option value="Model B">Model B</option>
+                            <option value="Model C">Model C</option>
+                            <option value="Model D">Model D</option>
+                            <option value="Model E">Model E</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                        <input type="number" id="quantity" min="1" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex items-center md:col-span-2">
+                        <input type="checkbox" id="delivered" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label for="delivered" class="ml-2 block text-sm text-gray-700">Mark as Delivered</label>
+                    </div>
+                    <div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md shadow-sm">
+                            Add Dispatch Record
+                        </button>
+                    </div>
+                </form>
+                
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Dispatch Records</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dispatchTable" class="bg-white divide-y divide-gray-200">
+                            <!-- Dispatch records will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Inventory Dashboard (Page 2) -->
+        <div id="inventory" class="tab-content">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-6">Inventory Overview</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-700 mb-4">Inventory Metrics</h3>
+                        <canvas id="inventoryChart" height="250"></canvas>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-700 mb-4">Delivery Status</h3>
+                        <canvas id="deliveryChart" height="250"></canvas>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Model</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Quantity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dispatched</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivered</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Returned</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">In Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTable" class="bg-white divide-y divide-gray-200">
+                            <!-- Inventory data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // Initialize data structure
+        let inventoryData = {
+            "Model A": { total: 100, dispatched: 0, delivered: 0, returned: 0 },
+            "Model B": { total: 100, dispatched: 0, delivered: 0, returned: 0 },
+            "Model C": { total: 100, dispatched: 0, delivered: 0, returned: 0 },
+            "Model D": { total: 100, dispatched: 0, delivered: 0, returned: 0 },
+            "Model E": { total: 100, dispatched: 0, delivered: 0, returned: 0 }
+        };
+
+        let dispatchRecords = [];
+
+        // Load data from localStorage if available
+        if (localStorage.getItem('inventoryData')) {
+            inventoryData = JSON.parse(localStorage.getItem('inventoryData'));
+        }
+        
+        if (localStorage.getItem('dispatchRecords')) {
+            dispatchRecords = JSON.parse(localStorage.getItem('dispatchRecords'));
+        }
+
+        // DOM Elements
+        const dispatchForm = document.getElementById('dispatchForm');
+        const dispatchTable = document.getElementById('dispatchTable');
+        const inventoryTable = document.getElementById('inventoryTable');
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        // Tab switching
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('border-blue-500', 'text-gray-700');
+                    btn.classList.add('text-gray-500');
+                });
+                
+                button.classList.add('border-blue-500', 'text-gray-700');
+                
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                document.getElementById(tabId).classList.add('active');
+                
+                if (tabId === 'inventory') {
+                    renderInventoryTable();
+                    renderCharts();
+                }
+            });
+        });
+
+        // Form submission
+        dispatchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const customerName = document.getElementById('customerName').value;
+            const productModel = document.getElementById('productModel').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const delivered = document.getElementById('delivered').checked;
+            
+            // Add to dispatch records
+            const record = {
+                id: Date.now(),
+                customerName,
+                productModel,
+                quantity,
+                delivered,
+                date: new Date().toLocaleDateString()
+            };
+            
+            dispatchRecords.push(record);
+            localStorage.setItem('dispatchRecords', JSON.stringify(dispatchRecords));
+            
+            // Update inventory data
+            inventoryData[productModel].dispatched += quantity;
+            
+            if (delivered) {
+                inventoryData[productModel].delivered += quantity;
+            } else {
+                inventoryData[productModel].returned += quantity;
+                inventoryData[productModel].total += quantity;
+            }
+            
+            localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+            
+            // Reset form
+            dispatchForm.reset();
+            
+            // Update UI
+            renderDispatchTable();
+            renderInventoryTable();
+        });
+        
+        // Toggle delivery status
+        function toggleDeliveryStatus(recordId) {
+            const record = dispatchRecords.find(r => r.id === recordId);
+            
+            if (record.delivered) {
+                // If changing from delivered to not delivered
+                inventoryData[record.productModel].delivered -= record.quantity;
+                inventoryData[record.productModel].returned += record.quantity;
+                inventoryData[record.productModel].total += record.quantity;
+            } else {
+                // If changing from not delivered to delivered
+                inventoryData[record.productModel].delivered += record.quantity;
+                inventoryData[record.productModel].returned -= record.quantity;
+                inventoryData[record.productModel].total -= record.quantity;
+            }
+            
+            record.delivered = !record.delivered;
+            
+            localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+            localStorage.setItem('dispatchRecords', JSON.stringify(dispatchRecords));
+            
+            renderDispatchTable();
+            renderInventoryTable();
+            renderCharts();
+        }
+        
+        // Delete record
+        function deleteRecord(recordId) {
+            const recordIndex = dispatchRecords.findIndex(r => r.id === recordId);
+            const record = dispatchRecords[recordIndex];
+            
+            // Update inventory data
+            inventoryData[record.productModel].dispatched -= record.quantity;
+            
+            if (record.delivered) {
+                inventoryData[record.productModel].delivered -= record.quantity;
+            } else {
+                inventoryData[record.productModel].returned -= record.quantity;
+                inventoryData[record.productModel].total -= record.quantity;
+            }
+            
+            // Remove the record
+            dispatchRecords.splice(recordIndex, 1);
+            
+            localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+            localStorage.setItem('dispatchRecords', JSON.stringify(dispatchRecords));
+            
+            renderDispatchTable();
+            renderInventoryTable();
+            renderCharts();
+        }
+        
+        // Render dispatch table
+        function renderDispatchTable() {
+            dispatchTable.innerHTML = '';
+            
+            if (dispatchRecords.length === 0) {
+                dispatchTable.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                            No dispatch records found. Add your first record above.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            dispatchRecords.forEach(record => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${record.customerName}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.productModel}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.quantity}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span class="status-dot ${record.delivered ? 'delivered' : 'pending'}"></span>
+                        ${record.delivered ? 'Delivered' : 'Pending'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <button onclick="toggleDeliveryStatus(${record.id})" class="text-blue-600 hover:text-blue-900 mr-2">
+                            ${record.delivered ? 'Mark Undelivered' : 'Mark Delivered'}
+                        </button>
+                        <button onclick="deleteRecord(${record.id})" class="text-red-600 hover:text-red-900">
+                            Delete
+                        </button>
+                    </td>
+                `;
+                dispatchTable.appendChild(row);
+            });
+        }
+        
+        // Render inventory table
+        function renderInventoryTable() {
+            inventoryTable.innerHTML = '';
+            
+            for (const [model, data] of Object.entries(inventoryData)) {
+                const inStock = data.total - data.dispatched;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${model}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${data.total}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${data.dispatched}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${data.delivered}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${data.returned}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inStock}</td>
+                `;
+                inventoryTable.appendChild(row);
+            }
+        }
+        
+        // Render charts
+        function renderCharts() {
+            // Inventory Chart
+            const inventoryCtx = document.getElementById('inventoryChart').getContext('2d');
+            
+            if (window.inventoryChart) {
+                window.inventoryChart.destroy();
+            }
+            
+            window.inventoryChart = new Chart(inventoryCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(inventoryData),
+                    datasets: [
+                        {
+                            label: 'Total Quantity',
+                            data: Object.values(inventoryData).map(item => item.total),
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)'
+                        },
+                        {
+                            label: 'In Stock',
+                            data: Object.values(inventoryData).map(item => item.total - item.dispatched),
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Product Inventory Status' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+            
+            // Delivery Chart
+            const deliveryCtx = document.getElementById('deliveryChart').getContext('2d');
+            
+            if (window.deliveryChart) {
+                window.deliveryChart.destroy();
+            }
+            
+            window.deliveryChart = new Chart(deliveryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Delivered', 'Pending', 'Returned'],
+                    datasets: [{
+                        data: [
+                            Object.values(inventoryData).reduce((sum, item) => sum + item.delivered, 0),
+                            Object.values(inventoryData).reduce((sum, item) => sum + (item.dispatched - item.delivered - item.returned), 0),
+                            Object.values(inventoryData).reduce((sum, item) => sum + item.returned, 0)
+                        ],
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(239, 68, 68, 0.7)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        title: { display: true, text: 'Delivery Status Overview' }
+                    }
+                }
+            });
+        }
+        
+        // Initial render
+        renderDispatchTable();
+        renderInventoryTable();
+        renderCharts();
+    </script>
+</body>
+</html>
